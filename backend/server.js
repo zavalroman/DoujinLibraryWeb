@@ -19,7 +19,7 @@ app.get('/api/albums', (req, res) => {
       post.id AS post_id,
       post.text AS description,
       image.url AS cover,
-      file.url AS file
+      json_group_array(json_object('url', file.url, 'title', file.title)) AS files
     FROM 
       post
     LEFT JOIN 
@@ -27,7 +27,8 @@ app.get('/api/albums', (req, res) => {
     LEFT JOIN 
       file ON post.id = file.post_id
     WHERE
-      post.date > 1658057681
+      post.date < 1661506993
+    GROUP BY post.id
     ORDER BY post.date DESC
     LIMIT 100;
   `;
@@ -36,7 +37,16 @@ app.get('/api/albums', (req, res) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
-    res.json(rows);
+
+    // Преобразуем строку JSON в массив
+    const formattedRows = rows.map(row => {
+      return {
+        ...row,
+        files: JSON.parse(row.files)
+      };
+    });
+
+    res.json(formattedRows);
   });
 });
 

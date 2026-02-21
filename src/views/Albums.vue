@@ -4,13 +4,23 @@
     <div v-if="loading">Загрузка...</div>
     <div v-else>
       <div class="album" v-for="album in albums" :key="album.id">
-        <h2>{{ "album.title" }}</h2>
+        <h2>
+          <a :href="`https://vk.com/wall-60027733_${album.post_id}`" target="_blank" class="album-title-link">{{ album.title }}</a>
+        </h2>
         <p>{{ album.description }}</p>
         <div class="image-container">
           <img :src="album.cover" :alt="album.description" class="album-cover" />
-          <a :href="album.file" target="_blank" class="wiki-link">
-            Скачать
-          </a>
+          <div class="files-container">
+            <a
+              v-for="(file, index) in album.files"
+              :key="index"
+              :href="file.url"
+              target="_blank"
+              class="file-link"
+            >
+              {{ file.title || `Скачать файл ${index + 1}` }}
+            </a>
+          </div>
         </div>
         <div class="like-section">
           <button @click="toggleLike(album.id)" class="like-button">
@@ -39,12 +49,27 @@ export default {
       if (album) {
         album.likes += album.likes ? -1 : 1;
       }
+    },
+    parseAlbumTitle(text) {
+      const regex = /\[.*?\]\s+(?:#\S+\s+)+(.*)/;
+      let match = text.match(regex);
+
+      if (match) {
+        return match[1].trim();
+      } else {
+        // Если не удалось распарсить, возвращаем первые 100 символов
+        return text.slice(0, 100) + (text.length > 100 ? "..." : "");
+      }
     }
   },
   async created() {
     try {
       const response = await axios.get('http://localhost:3000/api/albums');
-      this.albums = response.data.map((album) => ({ ...album, likes: 0 }));
+      this.albums = response.data.map((album) => ({
+        ...album,
+        likes: 0,
+        title: this.parseAlbumTitle(album.description) // Парсим заголовок
+      }));
     } catch (error) {
       console.error('Ошибка при загрузке данных:', error);
     } finally {
@@ -127,4 +152,33 @@ p {
 .like-button:hover {
   color: #ff4757; /* Более яркий красный при наведении */
 }
+
+.files-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.file-link {
+  color: #42b983; /* Зеленый цвет для ссылки */
+  text-decoration: none;
+  font-weight: bold;
+  margin: 5px 0; /* Отступ между ссылками */
+}
+
+.file-link:hover {
+  text-decoration: underline;
+}
+
+
+.album-title-link {
+  color: #42b983; /* Оранжевый цвет, замените на тот, который вам нужен */
+  text-decoration: none; /* Убираем подчёркивание */
+}
+
+.album-title-link:hover {
+  text-decoration: underline; /* Добавляем подчёркивание при наведении */
+}
+
 </style>
